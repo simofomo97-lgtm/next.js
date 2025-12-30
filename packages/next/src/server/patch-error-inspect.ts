@@ -1,4 +1,5 @@
 import { findSourceMap as nativeFindSourceMap } from 'module'
+import * as fs from 'fs'
 import * as path from 'path'
 import * as url from 'url'
 import type * as util from 'util'
@@ -7,6 +8,7 @@ import {
   type ModernSourceMapPayload,
   findApplicableSourceMapPayload,
   ignoreListAnonymousStackFramesIfSandwiched as ignoreListAnonymousStackFramesIfSandwichedGeneric,
+  normalizeSourceUrl,
   sourceMapIgnoreListsEverything,
 } from './lib/source-maps'
 import { parseStack, type StackFrame } from './lib/parse-stack'
@@ -27,6 +29,39 @@ export function setBundlerFindSourceMapImplementation(
   findSourceMapImplementation: FindSourceMapPayload
 ): void {
   bundlerFindSourceMapPayload = findSourceMapImplementation
+}
+
+// Cache for source maps read from disk to avoid repeated file I/O
+const diskSourceMapCache = new Map<string, ModernSourceMapPayload | null>()
+
+/**
+ * Try to read a source map from disk as a fallback when Node.js's findSourceMap fails.
+ * This handles cases where source maps aren't registered in Node.js's source map registry
+ * (e.g., when --enable-source-maps isn't set or files are loaded in certain ways).
+ */
+function readSourceMapFromDisk(
+  filePath: string
+): ModernSourceMapPayload | undefined {
+  // Check cache first
+  const cached = diskSourceMapCache.get(filePath)
+  if (cached !== undefined) {
+    return cached ?? undefined
+  }
+
+  const mapPath = filePath + '.map'
+  try {
+    if (fs.existsSync(mapPath)) {
+      const content = fs.readFileSync(mapPath, 'utf8')
+      const payload = JSON.parse(content) as ModernSourceMapPayload
+      diskSourceMapCache.set(filePath, payload)
+      return payload
+    }
+  } catch {
+    // Ignore read errors
+  }
+
+  diskSourceMapCache.set(filePath, null)
+  return undefined
 }
 
 interface IgnorableStackFrame extends StackFrame {
@@ -59,11 +94,26 @@ function frameToString(
     // In a multi-app repo, this leads to potentially larger file names but will make clicking snappy.
     // There's no tradeoff for the cases where `dir` in `next dev [dir]` is omitted
     // since relative to cwd is both the shortest and snappiest.
-    fileLocation = path.relative(process.cwd(), url.fileURLToPath(sourceURL))
+    try {
+      fileLocation = path.relative(process.cwd(), url.fileURLToPath(sourceURL))
+    } catch {
+      // fileURLToPath can fail for file URLs with non-localhost hosts
+      // Fall back to using the URL as-is
+      fileLocation = sourceURL
+    }
   } else if (sourceURL !== null && sourceURL.startsWith('/')) {
     fileLocation = path.relative(process.cwd(), sourceURL)
   } else {
     fileLocation = sourceURL
+  }
+
+  // Decode URL-encoded characters in the path (e.g., %5B -> [, %5D -> ])
+  if (fileLocation !== null) {
+    try {
+      fileLocation = decodeURIComponent(fileLocation)
+    } catch {
+      // Keep original if decoding fails
+    }
   }
 
   return methodName
@@ -169,6 +219,13 @@ function getSourcemappedFrameIfPossible(
     // "<anonymous>" or "node:internal/process/task_queues" here
     if (path.isAbsolute(frame.file)) {
       sourceURL = url.pathToFileURL(frame.file).toString()
+    } else if (
+      !frame.file.startsWith('webpack-internal://') &&
+      !frame.file.startsWith('<') &&
+      !frame.file.startsWith('node:')
+    ) {
+      // Relative paths need to be resolved to absolute paths for findSourceMap to work
+      sourceURL = url.pathToFileURL(path.resolve(frame.file)).toString()
     }
     let maybeSourceMapPayload: ModernSourceMapPayload | undefined
     try {
@@ -193,6 +250,10 @@ function getSourcemappedFrameIfPossible(
     }
     if (maybeSourceMapPayload === undefined) {
       maybeSourceMapPayload = bundlerFindSourceMapPayload(sourceURL)
+    }
+    // Fall back to reading source map from disk if Node.js and bundler both fail
+    if (maybeSourceMapPayload === undefined && path.isAbsolute(frame.file)) {
+      maybeSourceMapPayload = readSourceMapFromDisk(frame.file)
     }
 
     if (maybeSourceMapPayload === undefined) {
@@ -276,11 +337,22 @@ function getSourcemappedFrameIfPossible(
     ignored = true
   } else if (!ignored) {
     // TODO: O(n^2). Consider moving `ignoreList` into a Set
-    const sourceIndex = applicableSourceMap.sources.indexOf(
-      sourcePosition.source
-    )
+    // The source-map library may strip leading "./" when resolving paths,
+    // so we need to handle both formats when looking up in sources.
+    let sourceIndex = applicableSourceMap.sources.indexOf(sourcePosition.source)
+    if (sourceIndex === -1) {
+      // Try with "./" prefix for webpack:// URLs which often have this format
+      const sourceWithPrefix = sourcePosition.source.replace(
+        /^(webpack:\/\/[^/]+\/)/,
+        '$1./'
+      )
+      sourceIndex = applicableSourceMap.sources.indexOf(sourceWithPrefix)
+    }
     ignored = applicableSourceMap.ignoreList?.includes(sourceIndex) ?? false
   }
+
+  // Normalize source URLs that may have been incorrectly concatenated
+  const normalizedSource = normalizeSourceUrl(sourcePosition.source)
 
   const originalFrame: IgnorableStackFrame = {
     // We ignore the sourcemapped name since it won't be the correct name.
@@ -290,7 +362,7 @@ function getSourcemappedFrameIfPossible(
     methodName: frame.methodName
       ?.replace('__WEBPACK_DEFAULT_EXPORT__', 'default')
       ?.replace('__webpack_exports__.', ''),
-    file: sourcePosition.source,
+    file: normalizedSource,
     line1: sourcePosition.line,
     column1: sourcePosition.column + 1,
     // TODO: c&p from async createOriginalStackFrame but why not frame.arguments?

@@ -107,9 +107,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    // TODO(veil): Turbopack duplicates project path
-                    '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/utils.js:3:17)' +
-                    '\n    at middleware (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/middleware.js:12:54)' +
+                    '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/lib/utils.js:3:17)' +
+                    '\n    at middleware (../../test/integration/edge-runtime-dynamic-code/middleware.js:12:54)' +
                     '\n  1 | export async function usingEval() {'
                 : '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/lib/utils.js:3:19)' +
                     '\n    at middleware (../../test/integration/edge-runtime-dynamic-code/middleware.js:12:54)' +
@@ -121,9 +120,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    // TODO(veil): Turbopack duplicates project path
-                    '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/utils.js:3:17)' +
-                    '\n    at handler (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/pages/api/route.js:12:41)' +
+                    '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/lib/utils.js:3:17)' +
+                    '\n    at handler (../../test/integration/edge-runtime-dynamic-code/pages/api/route.js:12:41)' +
                     '\n  1 | export async function usingEval() {'
                 : '\n    at usingEval (../../test/integration/edge-runtime-dynamic-code/lib/utils.js:3:19)' +
                     '\n    at handler (../../test/integration/edge-runtime-dynamic-code/pages/api/route.js:12:41)' +
@@ -170,8 +168,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    '\n    at usingWebAssemblyCompile (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/wasm.js:22:18)' +
-                    '\n    at middleware (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/middleware.js:24:68)' +
+                    '\n    at usingWebAssemblyCompile (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:22:18)' +
+                    '\n    at middleware (../../test/integration/edge-runtime-dynamic-code/middleware.js:24:68)' +
                     '\n  20 |' +
                     '\n  21 | export async function usingWebAssemblyCompile(x) {' +
                     '\n> 22 |   const module = await WebAssembly.compile(SQUARE_WASM_BUFFER)' +
@@ -187,9 +185,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    // TODO(veil): Turbopack duplicates project path
-                    '\n    at usingWebAssemblyCompile (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/wasm.js:22:18)' +
-                    '\n    at handler (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/pages/api/route.js:20:55)' +
+                    '\n    at usingWebAssemblyCompile (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:22:18)' +
+                    '\n    at handler (../../test/integration/edge-runtime-dynamic-code/pages/api/route.js:20:55)' +
                     '\n  20 |'
                 : '' +
                     '\n    at usingWebAssemblyCompile (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:22:24)' +
@@ -227,8 +224,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +
-                    '\n    at async middleware (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/middleware.js:39:30)' +
+                    '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +
+                    '\n    at async middleware (../../test/integration/edge-runtime-dynamic-code/middleware.js:39:30)' +
                     '\n  26 |\n'
                 : '' +
                     '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +
@@ -246,9 +243,8 @@ describe.each([
             expect(output).toContain(
               isTurbopack
                 ? '' +
-                    // TODO(veil): Turbopack duplicates project path
-                    '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +
-                    '\n    at async handler (../../test/integration/edge-runtime-dynamic-code/test/integration/edge-runtime-dynamic-code/pages/api/route.js:28:26)' +
+                    '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +
+                    '\n    at async handler (../../test/integration/edge-runtime-dynamic-code/pages/api/route.js:28:26)' +
                     '\n  26 |'
                 : '' +
                     '\n    at async usingWebAssemblyInstantiateWithBuffer (../../test/integration/edge-runtime-dynamic-code/lib/wasm.js:28:24)' +

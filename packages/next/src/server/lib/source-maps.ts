@@ -47,6 +47,53 @@ export interface BasicSourceMapPayload {
 
 export type ModernSourceMapPayload = BasicSourceMapPayload | IndexSourceMap
 
+/**
+ * Normalize source URLs that were incorrectly concatenated by source-map resolution.
+ * The source-map library may concatenate sourceRoot with a file:/ URL if it doesn't
+ * recognize file:/ (single slash) as an absolute URL.
+ *
+ * Also handles duplicate path segments like:
+ * ../../../test/foo/test/foo/file.js -> ../../../test/foo/file.js
+ */
+export function normalizeSourceUrl(source: string): string {
+  // Handle file:/ URL concatenation
+  const lastFileUrlIndex = source.lastIndexOf('file:/')
+  if (lastFileUrlIndex > 0) {
+    let fileUrl = source.slice(lastFileUrlIndex)
+    // Normalize file:/ to file:// (the canonical form)
+    if (!fileUrl.startsWith('file://')) {
+      fileUrl = 'file://' + fileUrl.slice(5)
+    }
+    return fileUrl
+  }
+
+  // Handle duplicate path segments (e.g., test/foo/test/foo/file.js)
+  // Split path and look for repeated directory sequences
+  const parts = source.split('/')
+  for (let len = 1; len <= parts.length / 2; len++) {
+    for (let i = 0; i <= parts.length - len * 2; i++) {
+      // Check if parts[i:i+len] equals parts[i+len:i+len*2]
+      let match = true
+      for (let j = 0; j < len; j++) {
+        if (parts[i + j] !== parts[i + len + j]) {
+          match = false
+          break
+        }
+      }
+      if (match && parts[i] !== '..' && parts[i] !== '.' && parts[i] !== '') {
+        // Remove the duplicate segment
+        const newParts = [
+          ...parts.slice(0, i + len),
+          ...parts.slice(i + len * 2),
+        ]
+        return newParts.join('/')
+      }
+    }
+  }
+
+  return source
+}
+
 export function sourceMapIgnoreListsEverything(
   sourceMap: BasicSourceMapPayload
 ): boolean {
