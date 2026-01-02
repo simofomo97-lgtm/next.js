@@ -219,6 +219,47 @@ async function main() {
   // Ensure we have the arguments awaited from yargs.
   argv = await argv
 
+  // Check for stale or missing build
+  const distPath = path.join(__dirname, 'packages/next/dist')
+  const buildCommitPath = path.join(distPath, '.build-commit')
+  if (!existsSync(distPath)) {
+    console.warn('\x1b[33m%s\x1b[0m', '⚠️  WARNING: No build found!')
+    console.warn(
+      '\x1b[33m%s\x1b[0m',
+      '   The packages/next/dist directory does not exist.'
+    )
+    console.warn(
+      '\x1b[33m%s\x1b[0m',
+      '   Run `pnpm build` before running tests.\n'
+    )
+  } else if (!existsSync(buildCommitPath)) {
+    console.warn('\x1b[33m%s\x1b[0m', '⚠️  WARNING: Build may be stale!')
+    console.warn(
+      '\x1b[33m%s\x1b[0m',
+      '   Unable to verify build freshness (no .build-commit marker).'
+    )
+    console.warn('\x1b[33m%s\x1b[0m', '   Run `pnpm build` to rebuild.\n')
+  } else {
+    try {
+      const buildCommit = (await fsp.readFile(buildCommitPath, 'utf8')).trim()
+      const { stdout: currentCommit } = await exec('git rev-parse HEAD')
+      if (buildCommit !== currentCommit.trim()) {
+        console.warn('\x1b[33m%s\x1b[0m', '⚠️  WARNING: Build is stale!')
+        console.warn(
+          '\x1b[33m%s\x1b[0m',
+          `   Build was compiled at commit: ${buildCommit.slice(0, 8)}`
+        )
+        console.warn(
+          '\x1b[33m%s\x1b[0m',
+          `   Current HEAD is at commit:    ${currentCommit.trim().slice(0, 8)}`
+        )
+        console.warn('\x1b[33m%s\x1b[0m', '   Run `pnpm build` to rebuild.\n')
+      }
+    } catch (err) {
+      // Ignore errors (e.g., git not available)
+    }
+  }
+
   // `.github/workflows/build_reusable.yml` sets this, we should use it unless
   // it's overridden by an explicit `--concurrency` argument.
   const envConcurrency =
