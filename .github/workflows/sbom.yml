@@ -1,0 +1,22 @@
+name: Generate SBOM (C + CycloneDX)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom-cyclonedx.json   # fichier créé dans le workspace
+          artifact-name: sbom-cyclonedx.json # nom exact de l'artifact
