@@ -167,7 +167,8 @@ function createUnsourcemappedFrame(
       file: frame.file,
       line1: frame.line1,
       column1: frame.column1,
-      methodName: frame.methodName,
+      // Clean up webpack eval wrapper pattern: "Timeout.eval [as _onTimeout]" -> "Timeout._onTimeout"
+      methodName: frame.methodName?.replace(/\.eval \[as ([^\]]+)\]/, '.$1'),
       arguments: frame.arguments,
       ignored: shouldIgnoreListGeneratedFrame(frame.file),
     },
@@ -361,7 +362,9 @@ function getSourcemappedFrameIfPossible(
     // TODO(NDX-531): Spy on prepareStackTrace to get the enclosing line number for method name mapping.
     methodName: frame.methodName
       ?.replace('__WEBPACK_DEFAULT_EXPORT__', 'default')
-      ?.replace('__webpack_exports__.', ''),
+      ?.replace('__webpack_exports__.', '')
+      // Clean up webpack eval wrapper pattern: "Timeout.eval [as _onTimeout]" -> "Timeout._onTimeout"
+      ?.replace(/\.eval \[as ([^\]]+)\]/, '.$1'),
     file: normalizedSource,
     line1: sourcePosition.line,
     column1: sourcePosition.column + 1,
