@@ -1,4 +1,4 @@
-name: Generate SBOM (C + CycloneDX)
+name: Generate SBOM (Javascript + CycloneDX)
 
 on:
   push:
